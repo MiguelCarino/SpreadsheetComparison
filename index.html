@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spreadsheet Comparison</title>
+    <style>
+
+        body {
+            font-family: LiberationSans;
+            background: linear-gradient(to right, #6a11cb, #2575fc);
+            color: #333;
+            padding: 20px;
+            max-width: 1200px;
+            margin: auto;
+        }
+
+        .navbar {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background-color: #007BFF;
+            color: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            box-sizing: border-box;
+            margin-bottom: 20px;
+        }
+
+        .navbar-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .language-select {
+            max-width: 52%;
+        }
+
+        .content {
+            display: flex;
+            flex-direction: row;
+            gap: 20px;
+        }
+
+        .left-column {
+            flex: 1;
+            background-color: #ffffff80;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .right-column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #fff;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .container {
+            margin-bottom: 20px;
+        }
+
+        label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        select, button, input {
+            padding: 10px;
+            width: 100%;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            font-size: 16px;
+            max-width: 54vh;
+        }
+
+        button {
+            background-color: #6a11cb;
+            color: white;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #2575fc;
+        }
+
+        .output, .non-matches-output {
+            background-color: #fff;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            flex: 1;
+            overflow-y: auto;
+            max-height: 48vh;
+        }
+
+        .drop-area {
+            border: 2px dashed #6a11cb;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            transition: background-color 0.3s;
+            cursor: pointer;
+        }
+
+        .drop-area.dragover {
+            background-color: #e0e0e0;
+        }
+
+        @media (min-width: 768px) {
+            .left-column {
+                flex: 1;
+                max-width: 45%;
+            }
+
+            .right-column {
+                flex: 1;
+                max-width: 55%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <a href="https://carino.systems/"><img src="https://carino.systems/assets/images/logo.webp" alt="Logo" class="logo"></a>
+        <h1 data-i18n="Excel Sheet Comparator">Excel Sheet Comparator</h1>
+        <div class="navbar-right">
+            <select class="language-select" id="language-select">
+                <option value="en">English</option>
+                <option value="es">Spanish</option>
+                <option value="ja">Japanese</option>
+                <option value="ru">Russian</option>
+                <option value="iu">Inuktitut</option>
+            </select>
+            <a href="https://github.com/MiguelCarino/SpreadsheetComparison" class="github-link" data-i18n="Github">Github</a>
+        </div>
+    </div>
+
+    <div class="content">
+        <div class="left-column">
+            <div class="container">
+                <div class="drop-area" id="dropArea" data-i18n="drag_and_drop">
+                    Drag and drop your Excel file here or click to select it.
+                    <input type="file" id="fileInput" accept=".xls, .xlsx" style="display: none;">
+                </div>
+            </div>
+            <div class="container">
+                <label for="sheetSelect1" data-i18n="select_first_sheet">Select the first sheet to compare:</label>
+                <select id="sheetSelect1"></select>
+            </div>
+            <div class="container">
+                <label for="sheetSelect2" data-i18n="select_second_sheet">Select the second sheet to compare:</label>
+                <select id="sheetSelect2"></select>
+            </div>
+            <div class="container">
+                <label for="customPattern" data-i18n="custom_patterns">Enter custom patterns separated by commas to search:</label>
+                <input type="text" id="customPattern" placeholder="Example: pattern1, pattern2, pattern3" data-i18n="[placeholder]custom_patterns_placeholder">
+            </div>
+            <div class="container">
+                <input type="checkbox" id="exclusiveSearch"> 
+                <label for="exclusiveSearch" data-i18n="exclusive_search">Search exclusively for custom patterns</label>
+            </div>
+            <div class="container">
+                <input type="checkbox" id="searchAllCells"> 
+                <label for="searchAllCells" data-i18n="search_all_cells">Search all cells in the first sheet</label>
+            </div>
+            <div class="container">
+                <button id="compareBtn" data-i18n="compare_sheets">Compare Sheets</button>
+            </div>
+            <div class="container">
+                <button id="downloadBtn" style="display:none;" data-i18n="download_results">Download Results</button>
+            </div>
+        </div>
+        <div class="right-column">
+            <div class="output" id="output">
+                <h3 data-i18n="matches_found"></h3>
+                <ul id="matchesList"></ul>
+            </div>
+            <div class="non-matches-output" id="nonMatchesOutput">
+                <h3 data-i18n="non_matching_patterns"></h3>
+                <ul id="nonMatchesList"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/i18next/21.8.12/i18next.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-i18next/1.2.1/jquery-i18next.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/i18next-browser-languagedetector/6.1.3/i18nextBrowserLanguageDetector.min.js"></script>
+
+    <script>
+        const dropArea = document.getElementById('dropArea');
+        const fileInput = document.getElementById('fileInput');
+        const sheetSelect1 = document.getElementById('sheetSelect1');
+        const sheetSelect2 = document.getElementById('sheetSelect2');
+        const customPattern = document.getElementById('customPattern');
+        const exclusiveSearch = document.getElementById('exclusiveSearch');
+        const searchAllCells = document.getElementById('searchAllCells');
+        const compareBtn = document.getElementById('compareBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const output = document.getElementById('output');
+        const nonMatchesOutput = document.getElementById('nonMatchesOutput');
+        const matchesList = document.getElementById('matchesList');
+        const nonMatchesList = document.getElementById('nonMatchesList');
+        let workbook;
+        let resultados = [];
+        let noCoincidencias = [];
+        let loadedFileName = ''; // Store the loaded file name
+
+        document.addEventListener('DOMContentLoaded', () => {
+            setupI18n(); // Initialize i18n for language support
+        });
+
+        dropArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        dropArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropArea.classList.add('dragover');
+        });
+
+        dropArea.addEventListener('dragleave', () => {
+            dropArea.classList.remove('dragover');
+        });
+
+        dropArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropArea.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            handleFile(file);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            handleFile(file);
+        });
+
+        function handleFile(file) {
+            const reader = new FileReader();
+
+            reader.onload = function(event) {
+                const data = new Uint8Array(event.target.result);
+                workbook = XLSX.read(data, {type: 'array'});
+
+                sheetSelect1.innerHTML = '';
+                sheetSelect2.innerHTML = '';
+
+                workbook.SheetNames.forEach((sheetName) => {
+                    const option1 = document.createElement('option');
+                    option1.text = sheetName;
+                    option1.value = sheetName;
+                    sheetSelect1.add(option1);
+
+                    const option2 = document.createElement('option');
+                    option2.text = sheetName;
+                    option2.value = sheetName;
+                    sheetSelect2.add(option2);
+                });
+
+                loadedFileName = file.name; // Store the file name
+                updateDropAreaText(); // Update drop area text to the selected file name
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function updateDropAreaText() {
+            dropArea.textContent = loadedFileName ? loadedFileName : i18next.t('drag_and_drop');
+        }
+
+        compareBtn.addEventListener('click', () => {
+    const sheet1Name = sheetSelect1.value;
+    const sheet2Name = sheetSelect2.value;
+    const customPatternValue = customPattern.value.trim();
+    const exclusive = exclusiveSearch.checked;
+    const searchAll = searchAllCells.checked;
+
+    if (!sheet1Name || !sheet2Name) {
+        output.innerHTML = i18next.t('please_select_sheets');
+        return;
+    }
+
+    // Extract data from the selected sheets
+    const sheet1 = XLSX.utils.sheet_to_json(workbook.Sheets[sheet1Name], {header: 1});
+    const sheet2 = XLSX.utils.sheet_to_json(workbook.Sheets[sheet2Name], {header: 1});
+
+    console.log('Sheet 1 Data:', sheet1); // Debugging: log data of Sheet 1
+    console.log('Sheet 2 Data:', sheet2); // Debugging: log data of Sheet 2
+
+    resultados = [];
+    noCoincidencias = [];
+
+    const searchItems = [];
+
+    // Add search items based on the selected options
+    if (searchAll) {
+        sheet1.forEach(row => {
+            row.forEach(cell => {
+                if (cell && (!exclusive || (exclusive && !customPatternValue))) {
+                    searchItems.push(cell.toString());
+                }
+            });
+        });
+    } else {
+        const firstColumn = sheet1.map(row => row[0]); // Extract the first column
+        firstColumn.forEach(cell => {
+            if (cell && (!exclusive || (exclusive && !customPatternValue))) {
+                searchItems.push(cell.toString());
+            }
+        });
+    }
+
+    console.log('Search Items:', searchItems); // Debugging: log search items
+
+    if (customPatternValue) {
+        const customPatterns = customPatternValue.split(',').map(pattern => pattern.trim());
+        searchItems.push(...customPatterns);
+    }
+
+    searchItems.forEach(item => {
+        let matchFound = false;
+        sheet2.forEach(row2 => {
+            row2.forEach(cell2 => {
+                if (cell2 && cell2.toString().includes(item)) {
+                    resultados.push(cell2.toString());
+                    matchFound = true;
+                }
+            });
+        });
+        if (!matchFound) {
+            noCoincidencias.push(item);
+        }
+    });
+
+    console.log('Matching Results:', resultados); // Debugging: log matching results
+    console.log('Non-Matching Patterns:', noCoincidencias); // Debugging: log non-matching patterns
+
+    if (resultados.length > 0) {
+        output.innerHTML = `<h3>${i18next.t('matches_found')}</h3><ul>${resultados.map(match => `<li>${match}</li>`).join('')}</ul>`;
+        downloadBtn.style.display = 'block';
+    } else {
+        output.innerHTML = i18next.t('no_matches_found');
+        downloadBtn.style.display = 'none';
+    }
+
+    if (noCoincidencias.length > 0) {
+        nonMatchesOutput.innerHTML = `<h3>${i18next.t('non_matching_patterns')}</h3><ul>${noCoincidencias.map(nonMatch => `<li>${nonMatch}</li>`).join('')}</ul>`;
+    } else {
+        nonMatchesOutput.innerHTML = '';
+    }
+
+});
+
+        downloadBtn.addEventListener('click', () => {
+            const wb = XLSX.utils.book_new();
+
+            const ws1 = XLSX.utils.aoa_to_sheet(resultados.map(r => [r]));
+            XLSX.utils.book_append_sheet(wb, ws1, "Matching Results");
+
+            const ws2 = XLSX.utils.aoa_to_sheet(noCoincidencias.map(nm => [nm]));
+            XLSX.utils.book_append_sheet(wb, ws2, "Non-Matching Results");
+
+            XLSX.writeFile(wb, "spreadsheet_comparison_results.xlsx");
+        });
+
+        function setupI18n() {
+    i18next.use(i18nextBrowserLanguageDetector).init({
+        fallbackLng: 'en',
+        debug: true,
+        resources: {
+            en: {
+                translation: {
+                    "General Quotation": "Sheet-ty Comparisons",
+                    "Github": "Github",
+                    "Excel Sheet Comparator": "Excel Sheet Comparator",
+                    "drag_and_drop": "Drag and drop your Excel file here or click to select it.",
+                    "select_first_sheet": "Select the first sheet to compare:",
+                    "select_second_sheet": "Select the second sheet to compare:",
+                    "custom_patterns": "Enter custom patterns separated by commas to search:",
+                    "exclusive_search": "Search exclusively for custom patterns",
+                    "search_all_cells": "Search all cells in the first sheet",
+                    "compare_sheets": "Compare Sheets",
+                    "download_results": "Download Results",
+                    "matches_found": "Matches Found:",
+                    "non_matching_patterns": "Non-Matching Patterns:",
+                    "please_select_sheets": "Please select both sheets.",
+                    "no_matches_found": "No matches found.",
+                    "custom_patterns_placeholder": "Example: pattern1, pattern2, pattern3"
+
+                }
+            },
+            es: {
+                translation: {
+                    "General Quotation": "Comparaciones de Hojas",
+                    "Github": "Github",
+                    "Excel Sheet Comparator": "Comparador de Hojas de Excel",
+                    "drag_and_drop": "Arrastra y suelta tu archivo de Excel aquí o haz clic para seleccionarlo.",
+                    "select_first_sheet": "Selecciona la primera hoja para comparar:",
+                    "select_second_sheet": "Selecciona la segunda hoja para comparar:",
+                    "custom_patterns": "Introduce patrones personalizados separados por comas para buscar:",
+                    "exclusive_search": "Buscar exclusivamente los patrones personalizados",
+                    "search_all_cells": "Buscar en todas las celdas de la primera hoja",
+                    "compare_sheets": "Comparar Hojas",
+                    "download_results": "Descargar Resultados",
+                    "matches_found": "Coincidencias encontradas:",
+                    "non_matching_patterns": "Patrones no coincidentes:",
+                    "please_select_sheets": "Por favor, selecciona ambas hojas.",
+                    "no_matches_found": "No se encontraron coincidencias.",
+                    "custom_patterns_placeholder": "Ejemplo: patrón1, patrón2, patrón3"
+
+                }
+            },
+            ja: {
+                translation: {
+                    "General Quotation": "シートの比較",
+                    "Github": "Github",
+                    "Excel Sheet Comparator": "エクセルシート比較",
+                    "drag_and_drop": "Excelファイルをここにドラッグアンドドロップするか、クリックして選択します。",
+                    "select_first_sheet": "比較する最初のシートを選択してください：",
+                    "select_second_sheet": "比較する2番目のシートを選択してください：",
+                    "custom_patterns": "カスタムパターンをカンマで区切って入力してください：",
+                    "exclusive_search": "カスタムパターンのみを検索",
+                    "search_all_cells": "最初のシートのすべてのセルを検索",
+                    "compare_sheets": "シートを比較する",
+                    "download_results": "結果をダウンロード",
+                    "matches_found": "一致が見つかりました：",
+                    "non_matching_patterns": "一致しないパターン：",
+                    "please_select_sheets": "両方のシートを選択してください。",
+                    "no_matches_found": "一致が見つかりませんでした。",
+                    "custom_patterns_placeholder": "Ejemplo: patrón1, patrón2, patrón3"
+
+                }
+            },
+            ru: {
+                translation: {
+                    "General Quotation": "Сравнение Листов",
+                    "Github": "Github",
+                    "Excel Sheet Comparator": "Сравнитель таблиц Excel",
+                    "drag_and_drop": "Перетащите файл Excel сюда или нажмите, чтобы выбрать его.",
+                    "select_first_sheet": "Выберите первый лист для сравнения:",
+                    "select_second_sheet": "Выберите второй лист для сравнения:",
+                    "custom_patterns": "Введите пользовательские шаблоны через запятую для поиска:",
+                    "exclusive_search": "Искать только по пользовательским шаблонам",
+                    "search_all_cells": "Поиск по всем ячейкам первого листа",
+                    "compare_sheets": "Сравнить листы",
+                    "download_results": "Скачать результаты",
+                    "matches_found": "Найдены совпадения:",
+                    "non_matching_patterns": "Несовпадающие шаблоны:",
+                    "please_select_sheets": "Пожалуйста, выберите оба листа.",
+                    "no_matches_found": "Совпадений не найдено.",
+                    "custom_patterns_placeholder": "Ejemplo: patrón1, patrón2, patrón3"
+                }
+            },
+            iu: {
+                translation: {
+                    "General Quotation": "ᐅᐱᑕᓂᖅᓴᐅᓂᖅ ᐱᓇᓱᓕᐅᑎᑦᓯᒍᑦ",
+                    "Github": "Github",
+                    "Excel Sheet Comparator": "ᑎᑎᕋᐅᑦᓴᐅᑎᓂᖅ ᖃᕋᓴᐅᑎᓂᖅ ᓈᓴᐃᓂᑦ",
+                    "drag_and_drop": "ᐅᓇ ᐃᓕᓐᓂᖅ ᓈᓴᐃᓂᑦ ᓂᓗᓇᐅᑎᓐᓂᐊᖅᑕᕐᓂᖅ ᑭᓱᑦ ᐊᑕᓗᑎᓐᓂᐊᖅᑕᕐᓂᖅ",
+                    "select_first_sheet": "ᓯᕗᓂᖅ ᑎᑎᕋᐅᑦᓴᐅᑎᓂᖅ ᑐᕆᑦᓴᐅᑎᓐᓄᑦ",
+                    "select_second_sheet": "ᓯᕗᓂᖅ ᐱᓇᓱᓕᐅᑎᑦᓯᒍᑦ ᑎᑎᕋᐅᑦᓴᐅᑎᓂᖅ",
+                    "custom_patterns": "ᐊᑐᐃᓇᑦᓴᐅᑎᓂᖅ ᐊᑐᐃᓈᖅᐳᖅᑐᖅᓱᖅ ᑐᕆᑦᓴᐅᑎᓂᖅ ᐊᑕᓗᓐᓂᐊᖅᑕᕐᓂᖅ",
+                    "exclusive_search": "ᐱᓇᓱᓕᐅᑎᑦᓯᒍᑦ ᑭᓱᖅᐳᖅᑐᖅᓱᑦ ᑐᓂᕋᔅᓴᓂᖅ",
+                    "search_all_cells": "ᑎᑎᕋᐅᑦᓴᐅᑎᓐᓄᑦ ᑐᕆᑦᓴᐅᑎᓂᖅ",
+                    "compare_sheets": "ᑎᑎᕋᐅᑦᓴᐅᑎᓂᖅ",
+                    "download_results": "ᓈᓴᐃᓂᑦ ᐱᓇᓱᓕᐅᑎᑦᓯᒍᑦ",
+                    "matches_found": "ᓇᓯᓂᕋᔅᓴᖅ ᑐᕆᑦᓴᐅᑎᓂᖅ：",
+                    "non_matching_patterns": "ᐊᑐᐃᓇᓱᑦᑐᖅ ᑐᕆᑦᓴᐅᑎᓂᖅ：",
+                    "please_select_sheets": "ᑐᕆᑦᓴᐅᑎᓐᓄᑦ ᐅᕙᓂᑦᓴᖅᑐᓂᖅᑐᑦ。",
+                    "no_matches_found": "ᓇᓯᓂᕋᔅᓴᓂᖅ ᑐᕆᑦᓴᐅᑎᓂᖅ。",
+                    "custom_patterns_placeholder": "Ejemplo: patrón1, patrón2, patrón3"
+                }
+            }
+        }
+    }, function(err, t) {
+        // Initialize the translation functionality on the page
+        jqueryI18next.init(i18next, $, {
+            useOptionsAttr: true
+        });
+        updateContent();
+    });
+
+    // Handle language change
+    $('#language-select').change(function() {
+        const selectedLang = $(this).val();
+        i18next.changeLanguage(selectedLang, () => {
+            updateContent();
+            updateDropAreaText(); // Ensure the drop area retains the file name after language change
+        });
+    });
+}
+
+
+    function updateContent() {
+        $('body').localize();
+    }
+</script>
+
